@@ -97,7 +97,7 @@ def init(D,G):#分配航班模块
     return I,T,s                
                             
 if __name__ == '__main__':
-    for i in range(10):
+    
         file=open('可行解.txt','a')
         I,T,s=init(D,G)
         print(len(s))
