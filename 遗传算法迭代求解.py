@@ -65,7 +65,7 @@ s2_time=s_time.sort_index(by=['出发序列号'])#按出发顺序排序
 #     print(k,j)   
 #每个航班可停靠登机口,pk01,pk02
 
-def init(D,G):#分配航班模块
+def init(D,G):#分配航班模块#先来先服务，随机搜索可达路径
     D1=D
     G1=G
     s=[]
@@ -77,33 +77,40 @@ def init(D,G):#分配航班模块
         if len(Di)<1:
             init(D,G)
         else:
-            if len(Di)>0:
+            if len(Di)>1:
                 bi=random.randint(0,len(Di)-1)
             else:
                 bi=0    
-                if str(Di[bi])!='t70':
-                    if int(i[1]['到达序列号'])>(G1[Di[bi]]+9):
-                        #init(D, G)
-                        up={Di[bi]:int(i[1]['出发序列号'])}
-                        G1.update(up)
-                        for k,v in D1.items():
-                            v=list(v)
-                            if len(v)==0:
-                                init(D,G)
-                            else:
-                                print(Di[bi]) 
-                                print(v)                      
+            if str(Di[bi])!='t70':
+                if int(i[1]['到达序列号'])>(G1[Di[bi]]+9):
+                    #init(D, G)
+                    up={str(Di[bi]):int(i[1]['出发序列号'])}
+                    G1.update(up)
+                    for k,v in D1.items():
+                        v=list(v)
+                        if len(v)==0:
+                            init(D,G)
+                        else:
+                            #print(str(Di[bi])) 
+                            #print(v)
+                            s_time1=s_time[s_time['到达序列号']<int(i[1]['出发序列号']+9)]
+                            if k in s_time1[s_time1['出发序列号']>=int(i[1]['到达序列号'])]['飞机转场记录号']:                    
                                 if str(Di[bi]) in list(v):                             
                                     D1[k].remove(str(Di[bi]))
-                        for k1,v1 in D1.items():
-                            if len(v1)==0:
-                                #print(D1)
-                                init(D,G) 
-            T.append(Di[bi])   
-            s.append(bi)       
-        I.append(i[1]['飞机转场记录号'])
+                       # print(bi)
+                T.append(Di[bi])   
+                s.append(bi)       
+                I.append(i[1]['飞机转场记录号']) 
+#                 else:
+#                     init(D, G)
+                               
+            else:                 
+                T.append(Di[bi])   
+                s.append(bi)       
+                I.append(i[1]['飞机转场记录号'])
+            #print(s)
         
-    return s             
+    return I,T,s 
 #####################################################################################
 # def b2d(b): #将二进制转化为十进制 x∈[0,10]  
 #     t = 0  
@@ -133,44 +140,42 @@ def calfitvalue(objvalue):#转化为适应值，目标函数值越大越好，�
 #     return temp  
 
  
-def calobjvalue(pop,lines): #计算目标函数值  
+def calobjvalue(pop,t_,I_): #计算目标函数值  
     #DDD=DD
     file=open('gene_initial.txt','a')
-    line=lines
+#     line=lines
     line1=[]
-    temp1 = pop; 
+    temp1 = pop;
+    temp2=t_
+    temp3=I_
+    #print(pop) 
     
     objvalue = [];
     #weight1={}#对于分配到非 临时机位的航班，权重为个体中出现相同分配航站的次数，临时机位取0.5
-    #temp1 = decodechrom(pop) 
+    #temp1 = decodechrom(pop)
+    k=0
+    for i in temp1:                         
+        file.write('第'+str(k)+'个体：：'+str(i)+'\n') 
     k=0 
-    for i in temp1:
+    for j in temp2:
         i=list(i)
         sum1=0
-        temp2=[] 
-        temp3=[]
         weight1={}#对于分配到非 临时机位的航班，权重为个体中出现相同分配航站的次数，临时机位取0.5
-        print(len(i))
-        for j in range(0,len(i)):
-           # print(line[j])
-           # print((i[j]))
-            gene=str(line[j]).strip().split(',')[int(i[j])]
-            temp2.append(gene)   
-        for var in temp2:
-            weight1.update({var:temp2.count(var)})
-            #print(weight1)  
-            
+        print(len(j)) 
+        for var in j:
+            weight1.update({var:j.count(var)})
+            #print(weight1)            
         for k1,v in weight1.items():
             if(k1!='t70'):
                 sum1=+ v*v
             else :
                 sum1=+v
-           
-                            
-        file.write('第'+str(k)+'个体：：'+str(temp2)+'\n')
-        file.write('第'+str(k)+'次航班分配情况:'+str(weight1)+'\n')    
-        objvalue.append(sum1) 
+                        
+        objvalue.append(sum1)
+        file.write('第'+str(k)+'次航班分配情况:'+str(weight1)+'  weight；'+str(sum1)+'\n') 
         k+=1
+    
+
     #print(objvalue) 
     return objvalue #目标函数值objvalue[m] 与个体基因 pop[m] 对应   
 def best(pop, fitvalue): #找出适应函数值中最大值，和对应的个体  
@@ -250,8 +255,6 @@ def mutation(pop, pm): #基因突变
             else:  
                 pop[i][mpoint] = 1
 if __name__ == '__main__':
-    file=open('initial_hangban_fenpei_2.csv','r')
-    lines=file.readlines()
     D={}     
     for i in s1_time['飞机转场记录号']:
         list_D=[]  
@@ -298,11 +301,16 @@ if __name__ == '__main__':
     fitvalue = []  
     tempop = [[]] 
     pop=[]
+    T_=[]
+    i_=[]
     for i in range(popsize):
-        pop.append(init(D,G))#生成大小为50的种群
+        I_,t_,s_ =init(D, G)
+        pop.append(s_)#生成大小为50的种群
+        T_.append(t_)
+        i_.append(I_)
     print(len(pop))
     for i in range(50): #繁殖100代  
-        objvalue = calobjvalue(pop,lines) #计算目标函数值  
+        objvalue = calobjvalue(pop,T_,i_) #计算目标函数值  
         fitvalue = calfitvalue(objvalue); #计算个体的适应值  
         [bestindividual, bestfit] = best(pop, fitvalue) #选出最好的个体和最好的函数值  
         results.append([bestfit,bestindividual]) #每次繁殖，将最好的结果记录下来  

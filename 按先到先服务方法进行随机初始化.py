@@ -47,57 +47,64 @@ print(len(port1['登机口']))
 for i in port1['登机口']:
     G.setdefault(str(i),-350)  #默认时间序号最早是-300，19号12点，最晚为+300
 G.setdefault('t70',-350)
-@with_goto
-def init(D,G):
+#print(G)
+
+def init(D,G):#分配航班模块
     D1=D
     G1=G
     s=[]
     T=[]
     I=[]
-    for t in range(-350,300):#每一个时间片安排需要使用的航班
-        for i  in  s1_time.iterrows():
-            if(i[1]['到达序列号']==str(t)):
-                i1=0
-                Di=D1[str(i[1]['飞机转场记录号'])]#获取航班i的可停靠集合
-                if len(Di)<1:
-                    init(D,G)
-                else:
-                    if len(Di)>0:
-                        bi=random.randint(0,len(Di)-1)
-                    else:
-                        bi=0    
-                        if str(Di[bi])!='t70':
-                            if int(i[1]['到达序列号'])>=(int(G1[Di[bi]])+9):
-                                #init(D, G)
-                                up={Di[bi]:int(i[1]['出发序列号'])}
-                                G.update(up)
-                                for k,v in D1.items():
-                                    v=list(v)
-                                    if len(v)==0:
-                                        init(D,G)
-                                    else:
-                                        print(Di[bi]) 
-                                        print(v)                      
-                                        if str(Di[bi]) in list(v):                             
-                                            D1[k].remove(str(Di[bi]))
-                                for k1,v1 in D1.items():
-                                    if len(v1)==0:
-                                        #print(D1)
-                                        init(D,G) 
-                    T.append(Di[bi])
-                    print(bi)   
-                    s.append(bi)       
+    for i  in  s1_time.iterrows():
+        i1=0
+        Di=D1[str(i[1]['飞机转场记录号'])]#获取航班i的可停靠集合
+        if len(Di)<1:
+            init(D,G)
+        else:
+            if len(Di)>1:
+                bi=random.randint(0,len(Di)-1)
+            else:
+                bi=0    
+            if str(Di[bi])!='t70':
+                if int(i[1]['到达序列号'])>(G1[Di[bi]]+9):
+                    #init(D, G)
+                    up={str(Di[bi]):int(i[1]['出发序列号'])}
+                    G1.update(up)
+                    for k,v in D1.items():
+                        v=list(v)
+                        if len(v)==0:
+                            init(D,G)
+                        else:
+                            #print(str(Di[bi])) 
+                            #print(v)
+                            s_time1=s_time[s_time['到达序列号']<int(i[1]['出发序列号']+9)]
+                            if k in s_time1[s_time1['出发序列号']>=int(i[1]['到达序列号'])]['飞机转场记录号']:                    
+                                if str(Di[bi]) in list(v):                             
+                                    D1[k].remove(str(Di[bi]))
+                       # print(bi)
+                T.append(Di[bi])   
+                s.append(bi)       
+                I.append(i[1]['飞机转场记录号']) 
+#                 else:
+#                     init(D, G)
+                               
+            else:                 
+                T.append(Di[bi])   
+                s.append(bi)       
                 I.append(i[1]['飞机转场记录号'])
-                
-        return D1,s,T,I               
+            #print(s)
+        
+    return I,T,s                
                             
 if __name__ == '__main__':
+    for i in range(10):
+        file=open('可行解.txt','a')
+        I,T,s=init(D,G)
+        print(len(s))
+        file.write(str(I)+'\n')
+        file.write(str(T)+'\n')
+        file.write(str(s)+'\n')
     
-    file=open('可行解.txt','a')
-    _,s,t,I=init(D,G)
-    file.write(str(I)+'\n')
-    file.write(str(t)+'\n')
-    file.write(str(s)+'\n')
 
 #     f=open('initial_1txt','a') 
 #     D2=init(D)
